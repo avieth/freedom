@@ -2,7 +2,7 @@ Constructing Algebra
 --------------------
 
 Here we give an example use of the Control.Freedom.Construction module to
-build a DSL for some algebraic structures.
+build DSLs for some algebraic structures.
 
 As always, we begin with some noise.
 
@@ -91,7 +91,7 @@ Moving on to products:
 >     Product :: left h s a -> right h s a -> Product a left right h s a
 
 This is exactly the same as `Sum`. We can use it, just like `Sum`, to get the
-multiplicative semigroup of integers, but instead we'll throw it in *with*
+multiplicative semigroup, but instead we'll throw it in *with*
 `Sum` to obtain a near-semiring and subsequently a semiring. But first, we need
 to make a monoid; I'm not sure what they call a ring-like thing where the
 additive portion is just a semigroup.
@@ -125,7 +125,7 @@ demonstration wouldn't be complete without at least one example:
 
 > twoTimesOnePlusOne :: NearSemiring [()] s [()]
 > twoTimesOnePlusOne = inj (Product
->       (Rec (inj (Pure (const [()]))))
+>       (Rec (inj (Pure (const [(), ()]))))
 >       (Rec (inj (Sum (Rec (inj (Pure (const [()])))) (Rec (inj (Pure (const [()])))))))
 >     )
 
@@ -155,7 +155,7 @@ throwing in negation, and there's nothing new here:
 >         )))
 >     )
 
-If we throw in multiplicative inverses, we obtain a field. Like inventing an
+If we invent multiplicative inverses, we obtain a field. Like inventing an
 identity element, this process is exactly the same for sum as for product; here
 we just make `Negate` but give it a new name.
 
@@ -169,6 +169,14 @@ we just make `Negate` but give it a new name.
 > oneHalf = inj (Invert
 >         (Rec (inj (Pure (const [()]))))
 >     )
+
+One final detour: the ring-without-identity, or rng, is easily expressed
+using the concepts we've just developed.
+
+> type FGroup a = Negate a Rec + FMonoid a
+> type FRng a = Product a Rec Rec + FGroup a
+> type Group a = Fix (FGroup a)
+> type Rng a = Fix (FRng a)
 
 To make term writing a little less painful, we'll define some infix functions
 with the help of unicode syntax.
@@ -193,3 +201,15 @@ with the help of unicode syntax.
 >     ÷ (Rec (inj (lit [(), (), (), (), ()])))
 
 Ok, it's not much better. The `Rec` and `inj` noise is almost unbearable.
+
+Disclaimer
+----------
+
+Terms from algebra were used rather freely (incorrectly) here. We call
+`Sum a Rec Rec` a semigroup but in fact `Sum x (Sum y z) /= Sum (Sum x y) z`,
+and similarly for every other such type described (identity and inversion laws
+do not hold). These are purely formal representations of the elements of such
+structures, and their names suggest that they can be *interpreted* as the
+relevant structure, so long as the interpreter fulfills the necessary laws.
+An interpreter `f` for `Semigroup a`, for instance, must satisfy
+`f (Sum x (Sum y z)) = f (Sum (Sum x y) z)`.
