@@ -33,8 +33,8 @@ As always, we begin with some noise.
 > import Control.Freedom.Construction
 
 The goal is to obtain a datatype which is precisely the set of expressions in
-the ring of multiplication over the additive group of integers. In other words:
-plus, minus, and times. We shall build it from tiny parts, with the help of
+the field of some datatype. In other words: plus, minus, multiply, and divide.
+We shall build it from tiny parts, with the help of
 `Control.Freedom.Construction`.
 
 We start by coding in sums. We don't fix it to sums of numbers, but give the
@@ -52,7 +52,7 @@ datatypes.
 
 With `Sum` in hand, and `Pure`, `Rec` imported from
 `Control.Freedom.Construction`, we can immediately describe the type of terms
-in the additive semigroup of something (addition, but no negation).
+in the additive semigroup of something (addition, but no negation or zero).
 
 > type FSemigroup a = Sum a Rec Rec + Pure
 > type Semigroup a = Fix (FSemigroup a)
@@ -68,7 +68,8 @@ Note the choice of `[()]` for values in the additive semigroup. It might be
 confusing to choose `Int` or `Integer` instead, since these include additive
 inverses, which might lead one to believe that `Semigroup Integer` is
 in fact the additive group! That would be a mistake, though, because these are
-formal sums; in `Semigroup`, `1 + -1` is irreducible.
+formal sums; in `Semigroup Integer`, `n + -n` and `n + 0` are irreducible for
+every `n :: Integer`.
 
 > onePlusOne :: Semigroup [()] s [()]
 > onePlusOne = inj (Sum (Rec (inj (Pure (const [()])))) (Rec (inj (Pure (const [()])))))
@@ -91,33 +92,54 @@ Moving on to products:
 
 This is exactly the same as `Sum`. We can use it, just like `Sum`, to get the
 multiplicative semigroup of integers, but instead we'll throw it in *with*
-`Sum` to obtain a semiring:
+`Sum` to obtain a near-semiring and subsequently a semiring. But first, we need
+to make a monoid; I'm not sure what they call a ring-like thing where the
+additive portion is just a semigroup.
 
-> type FSemiring a = Product a Rec Rec + FSemigroup a
-> type Semiring a = Fix (FSemiring a)
+> data SumIdentity (h :: * -> * -> *) (s :: *) (t :: *) where
+>     SumIdentity :: SumIdentity h s t
+>
+> type FMonoid a = SumIdentity + FSemigroup a
+> type Monoid a = Fix (FMonoid a)
+>
+> type FNearSemiring a = Product a Rec Rec + FMonoid a
+> type NearSemiring a = Fix (FNearSemiring a)
 
-The `Rec`s present in `FSemigroup a` are plugged with
-`FSemiring a`, which means we have, in `Semiring`, products
-of sums, products of products, products of pure values, *and* sums of
-sums, sums of products, sums of pures. If we wanted a smaller type in which,
-say, sums of products are ruled out, we would use the `Close` type:
+In `Monoid a`, The `Rec`s present in `FSemigroup a` are plugged with
+`FMonoid a`, which means we have, in `Monoid`, the usual sums of sums, but
+also sums involving the new element `SumIdentity`. Similarly, in
+`NearSemiring a`, `FMonoid a` is plugged with `FNearSemiring a` so that we
+have products of sums, products of products, products of pure values, *and* sums
+of sums, sums of products, sums of pures; the `SumIdentity` may be present even
+in products. If we wanted a smaller type in which, say, sums of products are
+ruled out, we would use the `Close` type:
 
-> type FWeird a = Product a Rec Rec + Close (FSemigroup a)
+> type FWeird a = Product a Rec Rec + Close (FMonoid a)
 > type Weird a = Fix (FWeird a)
 
 `Close` cuts off its parameter from recursion via `Fix` by `Fix`ing its
 parameter.
 
-Terms of `Semiring [()]` are still rather painful to write, but this
+Terms of `NearSemiring [()]` are still rather painful to write, but this
 demonstration wouldn't be complete without at least one example:
 
-> twoTimesOnePlusOne :: Semiring [()] s [()]
+> twoTimesOnePlusOne :: NearSemiring [()] s [()]
 > twoTimesOnePlusOne = inj (Product
 >       (Rec (inj (Pure (const [()]))))
 >       (Rec (inj (Sum (Rec (inj (Pure (const [()])))) (Rec (inj (Pure (const [()])))))))
 >     )
 
-Throwing in negation is trivial:
+To grasp a `Semiring` we need an identity element for the product. We've already
+seen how that's done:
+
+> data ProductIdentity (h :: * -> * -> *) (s :: *) (t :: *) where
+>     ProductIdentity :: ProductIdentity h s t
+>
+> type FSemiring a = ProductIdentity + FNearSemiring a
+> type Semiring a = Fix (FSemiring a)
+
+For a ring, we'll need the additive part to be a group. That's accomplished by
+throwing in negation, and there's nothing new here:
 
 > data Negate (a :: *) (f :: (* -> * -> *) -> * -> * -> *) (h :: * -> * -> *) (s :: *) (t :: *) where
 >     Negate :: f h s a -> Negate a f h s a
@@ -133,9 +155,9 @@ Throwing in negation is trivial:
 >         )))
 >     )
 
-If we want to throw in multiplicative inverses to obtain a field, we do
-precisely what was done for additive inverses, inventing a new datatype so
-that we can distinguish the two inversions.
+If we throw in multiplicative inverses, we obtain a field. Like inventing an
+identity element, this process is exactly the same for sum as for product; here
+we just make `Negate` but give it a new name.
 
 > data Invert (a :: *) (f :: (* -> * -> *) -> * -> * -> *) (h :: * -> * -> *) (s :: *) (t :: *) where
 >     Invert :: f h s a -> Invert a f h s a
