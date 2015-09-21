@@ -64,6 +64,7 @@ them in other modules would yield orphan instances.
 module Control.Freedom.Construction (
 
       type (+)
+    , FSum(..)
     , Fix(..)
     , inj
     , Inject2
@@ -72,8 +73,12 @@ module Control.Freedom.Construction (
     , Rec(..)
     , Close(..)
     , Pure(..)
+    , None(..)
     , Dimap(..)
+    , Dot(..)
     , Sequence(..)
+    , type (×)
+    , (×)
     , First(..)
     , Apply(..)
     , Alternative(..)
@@ -183,11 +188,23 @@ data Close (f :: (* -> * -> *) -> * -> * -> *) (h :: * -> * -> *) (s :: *) (t ::
 data Pure (h :: * -> * -> *) (s :: *) (t :: *) where
     Pure :: ((->) s t) -> Pure h s t
 
+data None (h :: * -> * -> *) (s :: *) (t :: *) where
+    None :: None h () ()
+
 data Dimap (f :: (* -> * -> *) -> * -> * -> *) (h :: * -> * -> *) (s :: *) (t :: *) where
     Dimap :: (s -> s') -> (t' -> t) -> f h s' t' -> Dimap f h s t
 
+data Dot (left :: (* -> * -> *) -> * -> * -> *) (right :: (* -> * -> *) -> * -> * -> *) (h :: * -> * -> *) (s :: *) (t :: *) where
+    Dot :: left h t u -> right h s t -> Dot left right h s u
+
 data Sequence (left :: (* -> * -> *) -> * -> * -> *) (right :: (* -> * -> *) -> * -> * -> *) (h :: * -> * -> *) (s :: *) (t :: *) where
-    Sequence :: left h t u -> right h s t -> Sequence left right h s u
+    Sequence :: left h s () -> right h s t -> Sequence left right h s t
+
+infixr 8 ×
+type left × right = Sequence left right
+
+(×) :: left h s () -> right h s t -> Sequence left right h s t
+(×) = Sequence
 
 data First (f :: (* -> * -> *) -> * -> * -> *) (h :: * -> * -> *) (s :: *) (t :: *) where
     First :: f h s t -> First f h (s, c) (t, c)
@@ -218,11 +235,11 @@ instance
 
 instance
     ( Inject2 Pure f
-    , Inject2 (Sequence Rec Rec) f
+    , Inject2 (Dot Rec Rec) f
     ) => Category (Fix f)
   where
     id = inj (Pure id)
-    (.) left right = inj (Sequence (Rec left) (Rec right))
+    (.) left right = inj (Dot (Rec left) (Rec right))
 
 instance
     ( Inject2 Pure f
@@ -246,7 +263,7 @@ instance
 
 instance
     ( Inject2 Pure f
-    , Inject2 (Sequence Rec Rec) f
+    , Inject2 (Dot Rec Rec) f
     , Inject2 (First Rec) f
     ) => Arrow (Fix f)
   where
