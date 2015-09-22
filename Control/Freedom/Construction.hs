@@ -76,9 +76,11 @@ module Control.Freedom.Construction (
     , None(..)
     , Dimap(..)
     , Dot(..)
+    , Id(..)
     , Sequence(..)
     , type (×)
     , (×)
+    , Arr(..)
     , First(..)
     , Apply(..)
     , Alternative(..)
@@ -189,10 +191,13 @@ data Pure (h :: * -> * -> *) (s :: *) (t :: *) where
     Pure :: ((->) s t) -> Pure h s t
 
 data None (h :: * -> * -> *) (s :: *) (t :: *) where
-    None :: None h () ()
+    None :: None h s t
 
 data Dimap (f :: (* -> * -> *) -> * -> * -> *) (h :: * -> * -> *) (s :: *) (t :: *) where
     Dimap :: (s -> s') -> (t' -> t) -> f h s' t' -> Dimap f h s t
+
+data Id (h :: * -> * -> *) (s :: *) (t :: *) where
+    Id :: Id h s s
 
 data Dot (left :: (* -> * -> *) -> * -> * -> *) (right :: (* -> * -> *) -> * -> * -> *) (h :: * -> * -> *) (s :: *) (t :: *) where
     Dot :: left h t u -> right h s t -> Dot left right h s u
@@ -205,6 +210,9 @@ type left × right = Sequence left right
 
 (×) :: left h s () -> right h s t -> Sequence left right h s t
 (×) = Sequence
+
+data Arr (h :: * -> * -> *) (s :: *) (t :: *) where
+    Arr :: (->) s t -> Arr h s t
 
 data First (f :: (* -> * -> *) -> * -> * -> *) (h :: * -> * -> *) (s :: *) (t :: *) where
     First :: f h s t -> First f h (s, c) (t, c)
@@ -234,11 +242,11 @@ instance
     fmap = rmap
 
 instance
-    ( Inject2 Pure f
+    ( Inject2 Id f
     , Inject2 (Dot Rec Rec) f
     ) => Category (Fix f)
   where
-    id = inj (Pure id)
+    id = inj Id
     (.) left right = inj (Dot (Rec left) (Rec right))
 
 instance
@@ -262,12 +270,13 @@ instance
     (<|>) left right = inj (Alternative (Rec left) (Rec right))
 
 instance
-    ( Inject2 Pure f
+    ( Inject2 Id f
     , Inject2 (Dot Rec Rec) f
+    , Inject2 Arr f
     , Inject2 (First Rec) f
     ) => Arrow (Fix f)
   where
-    arr = inj . Pure
+    arr = inj . Arr
     first = inj . First . Rec
 
 instance
