@@ -1,5 +1,5 @@
 {-|
-Module      : Control.Freedom.Destruction
+Module      : Control.Freedom.Deconstruction
 Description : Tools for deconstructing free structures.
 Copyright   : (c) Alexander Vieth, 2015
 Licence     : BSD3
@@ -62,7 +62,7 @@ To discharge the @~>@ type, use @function@.
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE FunctionalDependencies #-}
 
-module Control.Freedom.Destruction (
+module Control.Freedom.Deconstruction (
 
       type (%)
     , (%)
