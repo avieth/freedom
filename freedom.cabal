@@ -17,7 +17,7 @@ cabal-version:       >=1.10
 
 library
   exposed-modules:     Control.Freedom.Construction
-                     , Control.Freedom.Interpretation
+                     , Control.Freedom.Deconstruction
   -- other-modules:       
   other-extensions:    AutoDeriveTypeable
                      , KindSignatures
@@ -38,8 +38,6 @@ library
                      , FlexibleContexts
 
   build-depends:       base >=4.8 && <4.9
-                     , free >=4.12 && <4.13
                      , profunctors >=5.1 && <5.2
-                     , contravariant >=1.3 && <1.4
   -- hs-source-dirs:      
   default-language:    Haskell2010
