@@ -69,6 +69,7 @@ module Control.Freedom.Deconstruction (
     , Function
     , function
     , type (~>)
+    , Xif(..)
 
     ) where
 
@@ -82,6 +83,12 @@ infixr 8 %
 type int1 % int2 = (int1, int2)
 
 (%) = (,)
+
+-- | Fix backwards. We Fix sums, we Xif their corresponding interpreters to
+--   obtain interpreters for Fix.
+newtype Xif x = Xif {
+      runXif :: x
+    }
 
 class Function i domain range | i -> domain, i -> range where
     function :: i -> domain -> range
@@ -98,7 +105,14 @@ instance
         FSumL term -> function left term
         FSumR term -> function right term
 
+instance
+    ( Function i (f1 (Fix f1) s t) range
+    ) => Function (Xif i) ((Fix f1) s t) range
+  where
+    function f = \fixTerm -> function (runXif f) (runFix fixTerm)
+
 type family F (domain :: *) (range :: *) where
+    F (Fix f s t) g = F (f (Fix f) s t) g
     F ((f1 + f2) h s t) g = (f1 h s t -> g, F (f2 h s t) g)
     F f1 g = (f1 -> g)
 
